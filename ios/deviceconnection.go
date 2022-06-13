@@ -49,8 +49,12 @@ func (conn *DeviceConnection) connectToSocketAddress(socketAddress string) error
 	switch runtime.GOOS {
 	case "windows":
 		network, address = "tcp", "127.0.0.1:27015"
-	default:
+	case "darwin":
 		network, address = "unix", socketAddress
+	default:
+		network, address = "tcp", "127.0.0.1:27015"
+		// network, address = "unix", socketAddress
+		//默认方式修改为tcp 27015
 	}
 	c, err := net.Dial(network, address)
 	if err != nil {
@@ -62,7 +66,7 @@ func (conn *DeviceConnection) connectToSocketAddress(socketAddress string) error
 }
 
 //Close closes the network connection
-func (conn *DeviceConnection) Close() error{
+func (conn *DeviceConnection) Close() error {
 	log.Tracef("Closing connection: %v", &conn.c)
 	return conn.c.Close()
 }
@@ -193,7 +197,7 @@ func (conn *DeviceConnection) createClientTLSConn(pairRecord PairRecord) (*tls.C
 		return nil, err
 	}
 
-	log.Tracef("enable session ssl on %v and wrap with tlsConn: %v",&conn.c, &tlsConn)
+	log.Tracef("enable session ssl on %v and wrap with tlsConn: %v", &conn.c, &tlsConn)
 	return tlsConn, nil
 }
 
@@ -219,7 +223,7 @@ func (conn *DeviceConnection) createServerTLSConn(pairRecord PairRecord) (*tls.C
 		log.Info("Handshake error", err)
 		return nil, err
 	}
-	log.Tracef("enable session ssl on %v and wrap with tlsConn: %v",&conn.c, &tlsConn)
+	log.Tracef("enable session ssl on %v and wrap with tlsConn: %v", &conn.c, &tlsConn)
 	return tlsConn, nil
 }
 
