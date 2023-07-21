@@ -2,16 +2,18 @@ package zipconduit
 
 import (
 	"encoding/binary"
-	"github.com/danielpaulus/go-ios/ios"
-	log "github.com/sirupsen/logrus"
 	"hash/crc32"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
+
+	"github.com/danielpaulus/go-ios/ios"
+	log "github.com/sirupsen/logrus"
 )
 
 /**
@@ -82,8 +84,44 @@ func (conn Connection) Close() error {
 	return conn.deviceConn.Close()
 }
 
+func (conn Connection) getTempDir(ipaPath string) (string, error) {
+	tmpDir := ""
+	switch runtime.GOOS {
+	case "android":
+		// tmpDir = "/storage/emulated/0/huntertools"
+		// tmpDir = "/storage/emulated/0/Android/data/com.cyc.testlibrary2/files/huntertools/supercall1.0.41.ipa"
+		pathArr := strings.Split(ipaPath, "/")
+		// fmt.Println("ipaPath--------------- ", ipaPath)
+		for _, v := range pathArr {
+			match, _ := regexp.Match("(.*)ipa", []byte(v))
+			if !match && v != "" {
+				tmpDir = tmpDir + "/" + v
+			}
+		}
+		break
+	case "windows":
+		// C:/Users/luyunhai/Desktop/WS/hunter_inspection_helper/extraResources/app.ipa
+		pathArr := strings.Split(ipaPath, "/")
+		pathArr = append(pathArr[0:len(pathArr)-1], "prefix")
+		tmpDir = strings.Join(pathArr, "/")
+		break
+	case "darwin":
+		dir, err := ioutil.TempDir("", "prefix")
+		if err != nil {
+			return "", err
+		}
+		tmpDir = dir
+		break
+	default:
+		break
+	}
+	// fmt.Println("tmpDir: ", tmpDir)
+	return tmpDir, nil
+}
+
 func (conn Connection) sendDirectory(dir string) error {
-	tmpDir, err := ioutil.TempDir("", "prefix")
+	// tmpDir, err := ioutil.TempDir("", "prefix")
+	tmpDir, err := conn.getTempDir(dir)
 	if err != nil {
 		return err
 	}
@@ -157,7 +195,8 @@ func (conn Connection) sendDirectory(dir string) error {
 
 }
 func (conn Connection) sendIpaFile(ipaFile string) error {
-	tmpDir, err := ioutil.TempDir("", "prefix")
+	// tmpDir, err := ioutil.TempDir("", "prefix")
+	tmpDir, err := conn.getTempDir(ipaFile)
 	if err != nil {
 		return err
 	}
